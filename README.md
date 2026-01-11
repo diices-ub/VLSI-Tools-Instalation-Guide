@@ -223,7 +223,7 @@ aclocal
 automake --add-missing
 autoconf
 ./configure
-make -j$(nproc)
+sudo make -j$(nproc)
 sudo make install
 cd ..
 ```

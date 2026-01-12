@@ -457,6 +457,9 @@ magic inverter.mag
 ### run layout vs schematic:
  run in terminal         : 
 ```bash
+cd ~/VLSI_Inverter_Design/Analog/
+rm -rf sky130A_setup.tcl 
+ln -s ~/.ciel/sky130A/libs.tech/netgen/sky130A_setup.tcl sky130A_setup.tcl
 netgen
 ```
 run in terminal netgen  :

@@ -279,7 +279,8 @@ sudo apt install \
   qtmultimedia5-dev libqt5multimediawidgets5 libqt5svg5-dev \
   ruby ruby-dev \
   python3 python3-dev \
-  libz-dev
+  libz-dev \
+  vim-gtk3
 
 ```
 Go to:

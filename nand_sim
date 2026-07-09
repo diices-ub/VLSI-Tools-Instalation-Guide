@@ -1,0 +1,58 @@
+#! /usr/bin/vvp
+:ivl_version "12.0 (stable)";
+:ivl_delay_selection "TYPICAL";
+:vpi_time_precision - 12;
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/system.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/vhdl_sys.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/vhdl_textio.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/v2005_math.vpi";
+:vpi_module "/usr/lib/x86_64-linux-gnu/ivl/va_math.vpi";
+S_0x5846644aa280 .scope module, "tb_nand_gate" "tb_nand_gate" 2 3;
+ .timescale -9 -12;
+v0x5846644bd210_0 .var "t_a", 0 0;
+v0x5846644bd2e0_0 .var "t_b", 0 0;
+v0x5846644bd3b0_0 .net "w_y", 0 0, L_0x5846644bd5f0;  1 drivers
+S_0x5846644aa410 .scope module, "UUT" "nand_gate" 2 9, 3 1 0, S_0x5846644aa280;
+ .timescale 0 0;
+    .port_info 0 /INPUT 1 "a";
+    .port_info 1 /INPUT 1 "b";
+    .port_info 2 /OUTPUT 1 "y";
+L_0x5846644bd4b0 .functor AND 1, v0x5846644bd210_0, v0x5846644bd2e0_0, C4<1>, C4<1>;
+L_0x5846644bd5f0 .functor NOT 1, L_0x5846644bd4b0, C4<0>, C4<0>, C4<0>;
+v0x5846644aa640_0 .net *"_ivl_0", 0 0, L_0x5846644bd4b0;  1 drivers
+v0x5846644bcf70_0 .net "a", 0 0, v0x5846644bd210_0;  1 drivers
+v0x5846644bd030_0 .net "b", 0 0, v0x5846644bd2e0_0;  1 drivers
+v0x5846644bd0d0_0 .net "y", 0 0, L_0x5846644bd5f0;  alias, 1 drivers
+    .scope S_0x5846644aa280;
+T_0 ;
+    %vpi_call 2 16 "$dumpfile", "simulasi_nand.vcd" {0 0 0};
+    %vpi_call 2 17 "$dumpvars", 32'sb00000000000000000000000000000000, S_0x5846644aa280 {0 0 0};
+    %vpi_call 2 18 "$monitor", "Time = %0t ns | A = %b | B = %b | NAND Output (Y) = %b", $time, v0x5846644bd210_0, v0x5846644bd2e0_0, v0x5846644bd3b0_0 {0 0 0};
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x5846644bd210_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x5846644bd2e0_0, 0, 1;
+    %delay 10000, 0;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x5846644bd210_0, 0, 1;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x5846644bd2e0_0, 0, 1;
+    %delay 10000, 0;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x5846644bd210_0, 0, 1;
+    %pushi/vec4 0, 0, 1;
+    %store/vec4 v0x5846644bd2e0_0, 0, 1;
+    %delay 10000, 0;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x5846644bd210_0, 0, 1;
+    %pushi/vec4 1, 0, 1;
+    %store/vec4 v0x5846644bd2e0_0, 0, 1;
+    %delay 10000, 0;
+    %end;
+    .thread T_0;
+# The file index is used to find the file name in the following table.
+:file_names 4;
+    "N/A";
+    "<interactive>";
+    "tb_nand_gate.v";
+    "nand_gate.v";

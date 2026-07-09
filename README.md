@@ -301,6 +301,139 @@ sudo dpkg -i (#sesuai nama file yang kalian download)
 sudo apt-get install -f
 ```
 
+Bisa tambahkan section baru setelah **5.7 Irsim** atau sebelum **KLayout**, misalnya:
+
+---
+
+# 5.8 Icarus Verilog (RTL Simulation)
+
+**Icarus Verilog** digunakan untuk compile dan simulasi desain Verilog menggunakan testbench.
+
+## Install Icarus Verilog
+
+```bash
+sudo apt update
+sudo apt install -y iverilog
+```
+
+## Verifikasi Instalasi
+
+```bash
+iverilog -V
+vvp -V
+```
+
+> ✅ Jika instalasi berhasil, versi Icarus Verilog dan VVP akan tampil di terminal.
+
+## Menjalankan Simulasi Verilog
+
+Misalkan terdapat file:
+
+```text
+nand_gate.v
+tb_nand_gate.v
+```
+
+Compile desain dan testbench:
+
+```bash
+iverilog -o sim nand_gate.v tb_nand_gate.v
+```
+
+Jalankan simulasi:
+
+```bash
+vvp sim
+```
+
+Output dari `$display()` pada testbench akan muncul di terminal.
+
+## Generate Waveform (VCD)
+
+Tambahkan pada testbench:
+
+```verilog
+initial begin
+    $dumpfile("wave.vcd");
+    $dumpvars(0, tb_nand_gate);
+end
+```
+
+Compile dan jalankan ulang:
+
+```bash
+iverilog -o sim nand_gate.v tb_nand_gate.v
+vvp sim
+```
+
+File waveform `wave.vcd` akan dihasilkan dan dapat digunakan untuk analisis sinyal.
+
+---
+
+# 5.9 Visual Studio Code Extensions
+
+Untuk mempermudah pengembangan dan debugging Verilog, gunakan extension berikut pada VS Code.
+
+## Verilog Language Support
+
+Install melalui VS Code Marketplace:
+
+```bash
+code --install-extension mshr-h.VerilogHDL
+```
+
+Fitur:
+
+* Syntax Highlighting
+* Auto-completion
+* Module Navigation
+* Verilog/SystemVerilog Support
+
+## Surfer Waveform Viewer
+
+Install Surfer:
+
+```bash
+code --install-extension surfer-project.surfer
+```
+
+Fitur:
+
+* Membuka file `.vcd`
+* Visualisasi waveform langsung di VS Code
+* Analisis hasil simulasi testbench tanpa aplikasi tambahan
+
+---
+
+# 5.10 Viewing Waveforms with Surfer
+
+Setelah simulasi menghasilkan file:
+
+```text
+wave.vcd
+```
+
+Buka file di VS Code:
+
+```bash
+code wave.vcd
+```
+
+atau klik file `wave.vcd` pada Explorer VS Code.
+
+Kemudian:
+
+1. Klik kanan pada file `wave.vcd`
+2. Pilih **Open With → Surfer**
+3. Tambahkan sinyal yang ingin diamati
+4. Analisis perubahan sinyal terhadap waktu
+
+> 📷 *Example Waveform Viewer using Surfer*
+> ![vcd](images/vcd.png)
+
+Dengan kombinasi **Icarus Verilog + VerilogHDL Extension + Surfer**, proses desain RTL, simulasi testbench, dan analisis waveform dapat dilakukan langsung di VS Code. 
+
+
 ---
 
 # 6. Setup OpenLane & Sky130 PDK 

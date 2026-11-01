@@ -1,147 +1,195 @@
+# 🛠️ Open-Source ASIC Design Flow Installation Guide (SkyWater 130nm & OpenLane 2)
+
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20|%2022.04-orange.svg)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-orange.svg)
+![OpenLane](https://img.shields.io/badge/OpenLane-2.x-blue.svg)
 ![Sky130](https://img.shields.io/badge/PDK-SkyWater%20130nm-brightgreen.svg)
-![Sky130](images/diices.png)
+![Docker](https://img.shields.io/badge/Docker-Engine%2024%2B-blue.svg)
 
-A comprehensive and well-structured guide for installing and configuring *open-source analog and digital VLSI design tools* integrated with the **SkyWater 130nm PDK**.
-</div>
-
-
-<div align="center">
-
-### 🎯 Target Audience
-
-🎓 IC Design Students & Researchers &nbsp;|&nbsp; 🔰 Beginner Analog &amp; Digital VLSI Learners &nbsp;|&nbsp; 💻 Xschem + Ngspice + Magic + OpenLane 2 Users &nbsp;|&nbsp; 🐧 Ubuntu Linux
-
+A comprehensive, production-grade guide for installing and configuring **open-source analog and digital VLSI design tools** powered by **OpenLane 2** and the **SkyWater 130nm PDK**.
 </div>
 
 ---
 
-## 📚 Table of Contents
+# 🎯 Target Audience
 
+- 🎓 IC Design students, researchers, and hobbyists
+- 🔰 Analog & Mixed-Signal (AMS) VLSI learners
+- 💻 Users of Xschem, Ngspice, Magic, Netgen, Irsim, and KLayout
+- 🐧 Ubuntu Linux operating system (20.04 LTS, 22.04 LTS, 24.04 LTS)
+
+---
+
+# 📚 Table of Contents
 1. [System Prerequisites](#1-system-prerequisites)
-2. [Tools & Their Functions](#2-tools--their-functions)
-3. [Nix Package Manager Installation](#3-nix-package-manager-installation)
+2. [Tools & Architecture Overview](#2-tools--architecture-overview)
+3. [Docker Engine Installation & Non-Root Setup](#3-docker-engine-installation--non-root-setup)
 4. [System Dependencies Installation](#4-system-dependencies-installation)
-5. [EDA Tools Installation](#5-eda-tools-installation)
-6. [Setup OpenLane 2](#6-setup-openlane-2)
-7. [Environment Variables & PDK Integration](#7-environment-variables-configuration-and-tools-integration-with-sky130-pdk)
-8. [Running Design Examples and Simulations](#8-running-design-examples-and-simulations)
-9. [Notes & Tips](#9-notes--tips)
+5. [EDA Tools Installation (From Source)](#5-eda-tools-installation-from-source)
+6. [OpenLane 2 & Sky130 PDK Setup](#6-openlane-2--sky130-pdk-setup)
+7. [Environment Variables & PDK Integration](#7-environment-variables--pdk-integration)
+8. [Running Design Examples & Simulations](#8-running-design-examples--simulations)
+9. [Troubleshooting & Pro Tips](#9-troubleshooting--pro-tips)
 
 ---
 
-## 1. System Prerequisites
+# 1. System Prerequisites
 
-| Requirement | Specification |
-| :-- | :-- |
-| 🖥️ **OS** | Ubuntu 20.04 / 22.04 LTS <sub>(22.04 recommended for VM)</sub> |
-| 💾 **Disk Space** | ≥ 15 GB |
-| 🧠 **RAM** | Minimal 8 GiB <sub>(16 GiB recommended)</sub> |
-| ⚙️ **Processor** | Quad-core @ 2.0 GHz+ <sub>(Intel 6th Gen+ / AMD Ryzen 1000+)</sub> |
+| Requirement | Minimum Specification | Recommended Specification |
+|------------|------------------------|---------------------------|
+| **OS** | Ubuntu 20.04 LTS (x86_64) | Ubuntu 22.04 / 24.04 LTS |
+| **CPU** | Quad-core CPU @ 2.0 GHz+ | 6th Gen Intel Core / AMD Ryzen 1000+ (8+ cores) |
+| **RAM** | 8 GiB | 16 GiB or more |
+| **Storage** | ≥ 25 GB free disk space (SSD) | ≥ 40 GB free space |
+| **Network**| Stable High-Speed Internet | Required for Docker images & PDK tarballs |
 
-<div align="center">
-<img src="images/ubuntu.png" width="650" alt="Ubuntu environment"/>
-
-<sub>📷 <i>Example of Ubuntu environment</i></sub>
-</div>
+> 📷 *Example of Ubuntu Environment*  
+> ![Ubuntu Environment](images/ubuntu.png)
 
 ---
 
-## 2. Tools & Their Functions
+# 2. Tools & Architecture Overview
 
-| Tool | Function | Status |
-| :-- | :-- | :--: |
-| **Xschem** | Schematic capture & netlist generation | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **Ngspice** | SPICE simulator | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **GAW** | Waveform viewer | ![Optional](https://img.shields.io/badge/-Optional-orange) |
-| **Magic** | VLSI layout editor | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **Netgen** | LVS (Layout vs. Schematic) | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **Irsim** | Digital Simulator | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **KLayout** | Layout viewer & DRC verification | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
-| **OpenLane 2** | Python & Nix-based RTL-to-GDSII automation | ![Core](https://img.shields.io/badge/-Core-2ea44f) |
+| Tool | Category | Role / Description |
+|------|----------|--------------------|
+| **OpenLane 2** | Digital Flow | Next-generation Python-driven RTL-to-GDSII flow infrastructure |
+| **Volare** | PDK Manager | Automated versioned installer & manager for open-source PDKs |
+| **Xschem** | Analog / Front-end | Schematic capture & Netlist generation (SPICE/Verilog) |
+| **Ngspice** | Simulation | Mixed-signal / SPICE engine (with XSpice & OpenMP support) |
+| **GAW** | Waveform Viewer | Analog waveform viewer for Xschem & Ngspice |
+| **Magic** | Layout / Physical | VLSI layout editor, DRC checker, and parasitic extraction |
+| **Netgen** | Verification | LVS (Layout vs. Schematic) tool |
+| **Irsim** | Digital Simulation | Switch-level digital simulator |
+| **KLayout** | Layout / Tape-out | High-performance GDSII/OASIS viewer and mask data editor |
+| **Docker** | Containerization | Sandboxed container runtime powering OpenLane 2 flows |
 
-<div align="center">
-<img src="images/flow.png" width="650" alt="Analog & Digital IC Design Flow"/>
-
-<sub>📷 <i>Analog & Digital IC Design Flow</i></sub>
-</div>
+> 📷 *Analog & Digital IC Design Flow*  
+> ![Analog Flow](images/flow.png)
 
 ---
 
-## 3. Nix Package Manager Installation
+# 3. Docker Engine Installation & Non-Root Setup
 
-> ⚠️ **Penting:** **Jangan** menginstal Nix via `apt` karena versinya usang. Gunakan installer resmi Determinate Systems yang menyertakan cache OpenLane.
+OpenLane 2 runs all synthesis, placement, routing, and signoff tools inside containerized environments via Docker. **Configuring Docker for non-root execution is mandatory.**
 
-### 3.1 Install Curl
-
+## 3.1 Remove Old / Conflicting Docker Packages
 ```bash
-sudo apt-get update && sudo apt-get install -y curl
+sudo apt-get remove -y docker docker-engine docker.io containerd runc
 ```
 
-### 3.2 Install Nix & Set OpenLane Binary Cache
-
+## 3.2 Add Docker's Official GPG Key & APT Repository
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm --extra-conf "    extra-substituters = https://openlane.cachix.org    extra-trusted-public-keys = openlane.cachix.org-1:qqdwh+QMNGmZAuyeQJTH9ErW57OWSvdtuwfBKdS254E="
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+# Create keyring directory
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository to APT sources
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
-> ⚠️ **Tutup dan buka kembali terminal kamu setelah langkah ini selesai.**
+## 3.3 Install Docker Engine & Plugins
+```bash
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
 
-### 3.3 Verifikasi / Tambahkan Cache Manually (Jika Nix Sudah Ada)
+## 3.4 Enable Docker Service on Boot
+```bash
+sudo systemctl enable docker.service
+sudo systemctl enable containerd.service
+sudo systemctl start docker
+```
+
+## 3.5 Configure Non-Root Access (CRITICAL ⚠️)
+Without this step, OpenLane 2 will fail with socket permission errors.
 
 ```bash
-nix-env -f "<nixpkgs>" -iA cachix
-sudo env PATH="$PATH:$HOME/.nix-profile/bin" cachix use openlane
-sudo pkill nix-daemon
+# Create docker group (if not already present)
+sudo groupadd docker
+
+# Add your current user to the docker group
+sudo usermod -aG docker $USER
+
+# Apply group changes to current subshell (or reboot)
+newgrp docker
 ```
+
+> ⚠️ **IMPORTANT**: It is strongly recommended to restart your machine (`sudo reboot`) or log out and log back in to ensure Docker group permissions apply system-wide.
+
+## 3.6 Verify Non-Root Docker
+Test Docker without using `sudo`:
+```bash
+docker run --rm hello-world
+```
+If you see `Hello from Docker!`, your Docker daemon is properly configured!
 
 ---
 
-## 4. System Dependencies Installation
+# 4. System Dependencies Installation
 
-### 4.1 System Update & Git Setup
-
+## 4.1 System Update & Git Configuration
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y build-essential gcc make perl git
+sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install -y build-essential gcc g++ make perl git curl
+```
+
+Configure your Git identity:
+```bash
 git config --global user.name "Your Name"
 git config --global user.email "email@domain.com"
 ```
 
-### 4.2 EDA Supporting Libraries
-
+## 4.2 Python Environment & OpenLane 2 Prerequisites
 ```bash
-sudo apt install -y \
-    m4 tcsh csh libx11-dev libx11-xcb-dev tcl-dev tcllib tk-dev \
-    libcairo2-dev mesa-common-dev libglu1-mesa-dev libncurses-dev clang \
-    bison flex libreadline-dev gawk libffi-dev graphviz xdot pkg-config \
-    python3 python3-pip libboost-system-dev adms autoconf automake libtool \
-    libxpm-dev libxaw7-dev libssl-dev libgtk-3-dev libboost-python-dev \
-    libboost-filesystem-dev zlib1g-dev xterm graphicsmagick ghostscript vim
+sudo apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-tk \
+    python3-dev
 ```
 
-<div align="center">
-
-
-<sub>📷 <i>Overview perangkat & dependensi sistem yang terpasang</i></sub>
-</div>
+## 4.3 EDA Compilation Libraries (Host Tools)
+Install libraries required to compile Xschem, Ngspice, Magic, Netgen, and Irsim:
+```bash
+sudo apt-get install -y \
+    m4 tcsh csh \
+    libx11-dev libx11-xcb-dev \
+    tcl-dev tcllib tk-dev \
+    libcairo2-dev mesa-common-dev libglu1-mesa-dev \
+    libncurses-dev clang \
+    bison flex libreadline-dev gawk \
+    libffi-dev graphviz xdot pkg-config \
+    adms autoconf automake libtool \
+    libxpm-dev libxaw7-dev libssl-dev \
+    libgtk-3-dev \
+    libboost-system-dev libboost-python-dev libboost-filesystem-dev \
+    zlib1g-dev \
+    xterm graphicsmagick ghostscript vim
+```
 
 ---
 
-## 5. EDA Tools Installation
+# 5. EDA Tools Installation (From Source)
 
-### 5.1 Directory Preparation
-
+Prepare your build directory:
 ```bash
 mkdir -p ~/open_source/tools
 cd ~/open_source/tools
 ```
 
-### 5.2 Xschem <sub>(Schematic Editor)</sub>
+---
 
+## 5.1 Xschem (Schematic Editor)
 ```bash
+cd ~/open_source/tools
 git clone https://github.com/StefanSchippers/xschem.git
 cd xschem
 ./configure
@@ -149,20 +197,18 @@ make -j$(nproc)
 sudo make install
 cd ..
 ```
+> 📷 *Xschem Capture*  
+> ![Xschem](images/xschem-1.png)
 
-<div align="center">
-<img src="images/xschem-1.png" width="650" alt="Xschem run"/>
+---
 
-<sub>📷 <i>Xschem run</i></sub>
-</div>
-
-### 5.3 Ngspice <sub>(Simulator)</sub>
-
+## 5.2 Ngspice (SPICE Simulator)
 ```bash
+cd ~/open_source/tools
 git clone https://git.code.sf.net/p/ngspice/ngspice ngspice_git
 cd ngspice_git
 ./autogen.sh --adms
-mkdir release && cd release
+mkdir -p release && cd release
 ../configure \
     --with-x \
     --enable-xspice \
@@ -174,36 +220,32 @@ make -j$(nproc)
 sudo make install
 cd ../..
 ```
+> 📷 *Ngspice CLI*  
+> ![Ngspice](images/ngspice-1.png)
 
-<div align="center">
-<img src="images/ngspice-1.png" width="650" alt="Ngspice CLI"/>
+---
 
-<sub>📷 <i>Ngspice CLI</i></sub>
-</div>
-
-### 5.4 GAW <sub>🔶 Optional</sub>
-
+## 5.3 GAW (Waveform Viewer - Optional)
 ```bash
+cd ~/open_source/tools
 git clone https://github.com/StefanSchippers/xschem-gaw
 cd xschem-gaw
 aclocal
 automake --add-missing
 autoconf
 ./configure
-sudo make -j$(nproc)
+make -j$(nproc)
 sudo make install
 cd ..
 ```
+> 📷 *GAW Waveform*  
+> ![GAW](images/gaw-1.png)
 
-<div align="center">
-<img src="images/gaw-1.png" width="650" alt="GAW waveform"/>
+---
 
-<sub>📷 <i>GAW waveform</i></sub>
-</div>
-
-### 5.5 Magic <sub>(Layout Editor)</sub>
-
+## 5.4 Magic (Layout Editor & DRC)
 ```bash
+cd ~/open_source/tools
 git clone https://github.com/RTimothyEdwards/magic
 cd magic
 ./configure
@@ -211,16 +253,14 @@ make -j$(nproc)
 sudo make install
 cd ..
 ```
+> 📷 *Magic Layout Editor*  
+> ![Magic](images/magic-1.png)
 
-<div align="center">
-<img src="images/magic-1.png" width="650" alt="Magic layout editor"/>
+---
 
-<sub>📷 <i>Magic layout editor</i></sub>
-</div>
-
-### 5.6 Netgen <sub>(LVS Tool)</sub>
-
+## 5.5 Netgen (LVS Tool)
 ```bash
+cd ~/open_source/tools
 git clone https://github.com/RTimothyEdwards/netgen
 cd netgen
 ./configure
@@ -228,244 +268,358 @@ make -j$(nproc)
 sudo make install
 cd ..
 ```
+> 📷 *Netgen LVS*  
+> ![Netgen](images/netgen-1.png)
 
-<div align="center">
-<img src="images/netgen-1.png" width="650" alt="Netgen LVS"/>
+---
 
-<sub>📷 <i>Netgen LVS</i></sub>
-</div>
-
-### 5.7 Irsim <sub>(Digital Simulator)</sub>
-
+## 5.6 Irsim (Switch-Level Digital Simulator)
 ```bash
+cd ~/open_source/tools
 git clone https://github.com/RTimothyEdwards/irsim
 cd irsim
 ./configure
-sudo make
+make -j$(nproc)
 sudo make install
 cd ..
 ```
 
-### 5.8 KLayout <sub>(Layout Viewer)</sub>
+---
 
+## 5.7 KLayout (Layout Viewer & GDS Editor)
+
+Install Qt5 dependencies:
 ```bash
-mkdir -p ~/open_source/tools/klayout
-cd ~/open_source/tools/klayout
-sudo apt install -y \
-  gcc g++ make \
+sudo apt-get install -y \
   qtbase5-dev qttools5-dev libqt5xmlpatterns5-dev \
   qtmultimedia5-dev libqt5multimediawidgets5 libqt5svg5-dev \
-  ruby ruby-dev python3 python3-dev libz-dev vim-gtk3
+  ruby ruby-dev \
+  libz-dev
 ```
 
-Unduh paket `.deb` dari [klayout.de/build.html](https://www.klayout.de/build.html) dan simpan di `~/open_source/tools/klayout`.
+You can install KLayout via APT or download the latest official `.deb` package:
 
-<div align="center">
-<img src="images/klayout_deb.png" width="650" alt="KLayout deb package"/>
-
-<sub>📷 <i>Pilih versi paket .deb KLayout yang sesuai</i></sub>
-</div>
-
-Jalankan instalasi:
-
+### Option A: Install via APT (Simple)
 ```bash
+sudo apt-get install -y klayout
+```
+
+### Option B: Install Latest `.deb` from Official Site
+1. Visit: [https://www.klayout.de/build.html](https://www.klayout.de/build.html)
+2. Download the `.deb` matching your Ubuntu version (e.g., `klayout_0.30.x_amd64.deb`).
+3. Install:
+```bash
+cd ~/Downloads
 sudo dpkg -i klayout_*.deb
-sudo apt-get install -f
+sudo apt-get install -f -y
 ```
-
-### 5.9 Icarus Verilog & Waveform Viewer <sub>(VS Code + Surfer)</sub>
-
-```bash
-sudo apt update && sudo apt install -y iverilog
-```
-
-<div align="center">
-<img src="images/vcd.png" width="650" alt="VCD waveform in Surfer"/>
-
-<sub>📷 <i>Visualisasi Waveform VCD dengan Extension Surfer di VS Code</i></sub>
-</div>
 
 ---
 
-## 6. Setup OpenLane 2
+# 6. OpenLane 2 & Sky130 PDK Setup
 
-### 6.1 Clone OpenLane 2 Repository
+Unlike OpenLane 1 (which used git repositories and Makefiles), **OpenLane 2** is a modular Python package distributed via PyPI that interacts with pre-built, version-pinned Docker images and manages PDKs using **Volare**.
 
-```bash
-cd ~
-git clone https://github.com/efabless/openlane2
-```
+## 6.1 Install OpenLane 2 via Python Virtual Environment (Recommended)
 
-### 6.2 Masuk ke Nix Shell & Uji Instalasi
+To avoid breaking system-managed Python packages on modern Ubuntu (22.04 / 24.04), create a dedicated virtual environment:
 
 ```bash
-cd ~/openlane2
-nix-shell
+# Create and activate virtual environment
+python3 -m venv ~/.venv/openlane
+source ~/.venv/openlane/bin/activate
+
+# Upgrade pip and install OpenLane 2 and Volare
+python3 -m pip install --upgrade pip
+python3 -m pip install openlane volare
 ```
 
-*(Pemuatan pertama kali membutuhkan waktu ~10 menit untuk mengunduh binary dari Cachix).*
+> 💡 **Tip:** If you prefer installing directly to your user path without a virtual environment:
+> ```bash
+> python3 -m pip install --upgrade pip
+> python3 -m pip install --user openlane volare
+> ```
 
-Setelah masuk ke dalam *devshell* (`❄️ impure (devshell)`):
+## 6.2 Install & Enable the SkyWater 130nm PDK via Volare
+
+Volare downloads pre-built, verified PDK builds into `~/.volare`:
 
 ```bash
-openlane --smoke-test
+# Ensure PDK_ROOT is set
+export PDK_ROOT=$HOME/.volare
+mkdir -p $PDK_ROOT
+
+# Download and enable the latest compatible SkyWater 130nm PDK
+volare enable --pdk sky130
 ```
 
-<div align="center">
-<img src="images/tes.png" width="650" alt="OpenLane smoke test result"/>
+Check the active PDK version:
+```bash
+volare ls --pdk sky130
+```
 
-<sub>📷 <i>Hasil <code>openlane --smoke-test</code> yang berhasil di dalam devshell</i></sub>
-</div>
+## 6.3 Run the OpenLane 2 Smoke Test
+
+Run the built-in smoke test to verify Docker integration, PDK mounting, and execution:
+
+```bash
+# If using the venv, ensure it is active: source ~/.venv/openlane/bin/activate
+python3 -m openlane --dockerized --smoke-test
+```
+
+> ⏳ *Note:* The first run will automatically pull the required OpenLane 2 Docker image. This may take 5–10 minutes depending on your internet connection.
+>
+> ✅ **Expected Result**: A success message indicating that the synthesis, placement, routing, and signoff flow passed the smoke test.
 
 ---
 
-## 7. Environment Variables Configuration and Tools Integration with Sky130 PDK
+# 7. Environment Variables & PDK Integration
 
-### 7.1 Setup Directory Desain
+To ensure host tools (Xschem, Magic, Ngspice, Netgen, Irsim, KLayout) can find the Sky130 PDK installed by Volare, configure your environment variables.
 
+## 7.1 Setup Design Directories
 ```bash
 mkdir -p ~/design/{netgen,irsim}
 ```
 
-### 7.2 PDK Root Configuration
+## 7.2 Configure `.bashrc`
 
+Open `~/.bashrc`:
 ```bash
 nano ~/.bashrc
 ```
 
-Tambahkan baris berikut di bagian akhir file:
+Append the following configuration to the bottom:
 
 ```bash
-# Path PDK
-export PDK_ROOT=$HOME/.ciel
+# ==========================================
+# OpenLane 2 & SkyWater 130nm PDK Setup
+# ==========================================
+# PDK Root location used by Volare and OpenLane 2
+export PDK_ROOT=$HOME/.volare
 
+# OpenLane 2 Virtual Environment (optional auto-activate)
+if [ -f "$HOME/.venv/openlane/bin/activate" ]; then
+    alias activate_openlane="source $HOME/.venv/openlane/bin/activate"
+fi
+
+# Switch PDK Variants (Sky130A vs Sky130B)
 set_sky130a() {
     export PDK=sky130A
-    ln -sf $PDK_ROOT/sky130A/libs.tech/ngspice/spinit ~/.spiceinit
+    if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
+        ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
+    fi
     if [[ -t 1 ]]; then
-     echo "PDK is now set to: $PDK"
+        echo "Active PDK is now: $PDK"
     fi
 }
 
 set_sky130b() {
     export PDK=sky130B
-    ln -sf $PDK_ROOT/sky130B/libs.tech/ngspice/spinit ~/.spiceinit
+    if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
+        ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
+    fi
     if [[ -t 1 ]]; then
-     echo "PDK is now set to: $PDK"
+        echo "Active PDK is now: $PDK"
     fi
 }
 
+# Set default PDK to sky130A
 set_sky130a
 
+# Aliases for Magic & Xschem with PDK tech files
 alias magic='magic -rcfile $PDK_ROOT/$PDK/libs.tech/magic/$PDK.magicrc'
 alias xschem='xschem --rcfile $PDK_ROOT/$PDK/libs.tech/xschem/xschemrc'
+alias openlane='python3 -m openlane --dockerized'
 ```
 
+Save and exit (`Ctrl + O`, `Enter`, then `Ctrl + X`).
+
+Reload your shell:
 ```bash
 source ~/.bashrc
 ```
 
-### 7.3 Verifikasi Integrasi Alat dengan Sky130 PDK
-
-Uji Xschem terhubung ke Sky130:
-
+Verify your environment:
 ```bash
-xschem
+echo $PDK_ROOT
+# Expected: /home/<username>/.volare
 ```
 
-<div align="center">
-<img src="images/xshem-2.png" width="650" alt="Xschem connected to Sky130"/>
+---
 
-<sub>📷 <i>Xschem connected to Sky130</i></sub>
-</div>
+## 7.3 Tool-Specific Integrations
 
-Uji Magic terhubung ke Sky130:
-
-```bash
-magic
-```
-
-<div align="center">
-<img src="images/magic-2.png" width="650" alt="Magic connected to Sky130"/>
-
-<sub>📷 <i>Magic connected to Sky130</i></sub>
-</div>
-
-### 7.4 Integrasi Netgen
-
+### Netgen LVS Setup
 ```bash
 cd ~/design/netgen
 ln -sf $PDK_ROOT/sky130A/libs.tech/netgen/setup.tcl sky130A_setup.tcl
 ln -sf $PDK_ROOT/sky130B/libs.tech/netgen/setup.tcl sky130B_setup.tcl
 ```
 
-<div align="center">
-<img src="images/netgen_pdk.png" width="650" alt="Netgen PDK Setup"/>
+### Irsim Setup
+```bash
+cd ~/design/irsim
+ln -sf $PDK_ROOT/sky130A/libs.tech/irsim irsim_sky130A
+ln -sf $PDK_ROOT/sky130B/libs.tech/irsim irsim_sky130B
+```
 
-<sub>📷 <i>Netgen PDK Setup</i></sub>
-</div>
-
-### 7.5 Integrasi KLayout
-
+### KLayout Tech Files
 ```bash
 mkdir -p ~/.klayout/tech
 cd ~/.klayout/tech
 ln -sf $PDK_ROOT/sky130A/libs.tech/klayout sky130A
 ```
 
-<div align="center">
-<img src="images/KlayoutSky.png" width="650" alt="KLayout connected with Sky130"/>
-
-<sub>📷 <i>KLayout Connected with Sky130</i></sub>
-</div>
-
 ---
 
-## 8. Running Design Examples and Simulations
+# 8. Running Design Examples & Simulations
 
-Kloning contoh desain inverter:
-
+Clone the reference VLSI Inverter repository:
 ```bash
 cd ~
 git clone https://github.com/raisrmdhnar2/VLSI_Inverter_Design
 cd VLSI_Inverter_Design
 ```
 
-### 8.1 How to run a design on OpenLane 2?
+---
 
-**1. Masuk ke direktori OpenLane 2 & aktifkan nix-shell:**
-
-```bash
-cd ~/openlane2
-nix-shell
-```
-
-**2. Jalankan flow OpenLane 2:**
-
-Gunakan perintah `openlane` diikuti lokasi `config.json` atau `config.yaml` dari proyek kamu:
+## 8.1 Analog Design Flow: Schematic, Layout, LVS, & Simulation
 
 ```bash
-openlane --pdk sky130A ~/VLSI_Inverter_Design/Digital/inverter/config.json
+cd ~/VLSI_Inverter_Design/Analog
 ```
 
-<div align="center">
-<img src="images/layout.png" width="650" alt="Final GDSII layout result"/>
+### 1. View Schematic (Xschem)
+```bash
+xschem InverterX.sch
+```
+> 📷 *Analog Inverter Schematic*  
+> ![Analog Inverter Schematic](Results/inverter_schem.png)
 
-<sub>📷 <i>Hasil layout akhir (GDSII) dari flow OpenLane 2</i></sub>
-</div>
+### 2. View Layout (Magic)
+```bash
+magic inverter.mag
+```
+> 📷 *Analog Inverter Layout*  
+> ![Analog Inverter Layout](Results/Layout_inverter.png)
+
+### 3. Run LVS (Netgen)
+Inside your terminal:
+```bash
+netgen
+```
+Then execute inside Netgen:
+```tcl
+lvs {inverter_layout.spice inverter} {Inverter_schematic.spice InverterX} sky130A_setup.tcl
+```
+> 📷 *LVS Results*  
+> ![LVS Result](Results/Inverter_LVS.png)
+
+### 4. Run SPICE Transient Simulation (Ngspice)
+```bash
+ngspice tb.spice
+```
+> 📷 *Ngspice Transient Simulation*  
+> ![Spice Simulation](Results/analog_inverter_simulation.png)
 
 ---
 
-## 9. Notes & Tips
+## 8.2 Digital Design Flow with OpenLane 2
 
-> 💡 **General Tips & Troubleshooting**
->
-> - ⚠️ Magic menyembunyikan hierarki secara default. Pilih semua area lalu tekan **`x`** untuk menampilkan.
-> - ⚡ **OpenLane 2**: Selalu pastikan berada di dalam `nix-shell` sebelum mengeksekusi perintah `openlane`.
-> - 🔍 Gunakan `nix-shell -v` jika ingin melihat detail indikator proses *download* saat memasuki lingkungan Nix.
+In OpenLane 2, designs are configured with a `config.json` or `config.yaml` file (classic `.tcl` is also supported) and run directly using the `openlane` command.
 
-<div align="center">
+### 1. Running RTL-to-GDSII with OpenLane 2
+
+To synthesize, place, route, and signoff a digital block:
+
+```bash
+# If using venv:
+source ~/.venv/openlane/bin/activate
+
+# Run OpenLane 2 in Dockerized mode:
+openlane --dockerized ~/VLSI_Inverter_Design/Digital/inverter
+```
+
+*(Alternatively, run interactive bash inside the OpenLane 2 container with your home & PDK mounted:)*
+```bash
+openlane --dockerized
+```
+
+### 2. Inspecting Layout Results (KLayout)
+After OpenLane finishes, inspect the final GDSII file:
+```bash
+cd ~/VLSI_Inverter_Design/Digital/inverter/runs
+# Navigate to the latest run directory results/final/gds/
+klayout inverter.gds
+```
+> 📷 *Digital Inverter GDS in KLayout*  
+> ![Digital Klayout Inverter](Results/klayout_inverter.png)
+
+### 3. Inspecting Layout in Magic
+```bash
+# Inside results/final/mag/
+magic inverter.mag
+```
+> 💡 *Tip:* Press **`v`** to fit view, or select all and press **`x`** to unhide subcell hierarchy.
+
+### 4. Switch-Level Digital Simulation (Irsim)
+```bash
+irsim sky130A_tt_nom_27.prm inverter.sim
+```
+Inside IRSIM terminal:
+```tcl
+source tb_inverter_irsim.cmd
+```
+> 📷 *Digital Simulation via Irsim*  
+> ![Digital Simulation Irsim](Results/Digital_Inverter_Simulation_irsim.png)
 
 ---
-<sub>Made for open-source ASIC / analog-digital IC design learners • SkyWater 130nm + OpenLane 2</sub>
+
+# 9. Troubleshooting & Pro Tips
+
+## 💡 Quick Tips
+- 🔍 **Unhide Magic Hierarchy:** In Magic, subcells are hidden by default. Click and drag to select everything, then press **`x`** (expand) to show all layer details. Press **`Shift + Z`** / **`Ctrl + Z`** to zoom.
+- ⚡ **Interactive Container:** To debug OpenLane 2 steps interactively, invoke `python3 -m openlane --dockerized` without arguments to drop into a container shell with your workspace mounted.
+- 🔄 **PDK Switching:** Run `set_sky130a` or `set_sky130b` in your terminal anytime to switch between Sky130 process variations.
+
+## 🔧 Troubleshooting Matrix
+
+| Issue / Error | Cause | Solution |
+|--------------|-------|----------|
+| `Got permission denied while trying to connect to Docker daemon` | User not in `docker` group | Run `sudo usermod -aG docker $USER`, then run `newgrp docker` or reboot your machine. |
+| `externally-managed-environment` when installing OpenLane | Ubuntu 22.04+ PEP 668 restriction | Use Python venv (`python3 -m venv ~/.venv/openlane && source ~/.venv/openlane/bin/activate`) before running `pip install`. |
+| `PDK sky130 not found` or `PDK_ROOT not set` | Missing Volare PDK download | Run `export PDK_ROOT=$HOME/.volare && volare enable --pdk sky130`. |
+| `Cannot find tech file: sky130A.magicrc` | Incorrect PDK path or missing alias | Ensure `PDK_ROOT` points to `$HOME/.volare` and verify `$PDK_ROOT/sky130A` exists. |
+| Xschem cannot find symbols | Missing `xschemrc` configuration | Run Xschem using the provided alias `xschem`, which automatically passes the PDK rcfile. |
+
+---
+
+# 📖 Additional Resources
+
+- 🌐 [OpenLane 2 GitHub Repository](https://github.com/The-OpenROAD-Project/OpenLane)
+- 📖 [OpenLane 2 Documentation](https://openlane.readthedocs.io/en/latest/)
+- 📦 [Volare PDK Manager Documentation](https://efabless.github.io/volare/)
+- 📘 [SkyWater 130nm PDK Documentation](https://skywater-pdk.readthedocs.io/)
+- 📐 [Xschem Manual](http://repo.hu/projects/xschem/)
+- 🪄 [Magic VLSI Website](http://opencircuitdesign.com/magic/)
+
+---
+
+# 🎉 Congratulations!
+
+Your complete **OpenLane 2 + SkyWater 130nm ASIC Design Environment** is fully operational!
+
+- ✅ Schematic Capture & Netlisting with **Xschem**
+- ✅ Analog Simulation with **Ngspice**
+- ✅ Custom Physical Layout with **Magic**
+- ✅ Physical Verification & LVS with **Netgen**
+- ✅ Automated RTL-to-GDSII Digital Flow with **OpenLane 2**
+
+**Happy Designing & Tape-out! 🚀**
+
+---
+
+<div align="center">
+Made with ❤️ for the Open-Source Silicon Community
 </div>

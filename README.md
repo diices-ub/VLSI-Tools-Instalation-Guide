@@ -68,6 +68,24 @@ docker images | grep -E "efabless/openlane|openroad" | awk '{print $3}' | xargs 
 # Bersihkan sisa build cache docker yang tidak terpakai
 docker system prune -f
 ```
+### 2.3 Install Conda 
+```bash
+sudo apt install wget curl bzip2 ca-certificates -y
+```
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+```bash
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+aktifkan conda
+```bash
+source ~/.bashrc
+```
+```bash
+conda activate
+```
+
 
 ---
 
@@ -84,10 +102,10 @@ sudo apt-get install -y python3-venv python3-pip python3-tk
 ### 3.2 Buat Virtual Environment & Install OpenLane 2
 ```bash
 # Buat virtual environment khusus
-python3 -m venv ~/.venv/openlane
+python -m pip install openlane volare
 
 # Aktifkan venv & install openlane + volare
-source ~/.venv/openlane/bin/activate
+source ~/./openlane/bin/activate
 pip install --upgrade pip
 pip install openlane volare
 ```
@@ -206,7 +224,7 @@ ln -sf $PDK_ROOT/sky130A/libs.tech/klayout sky130A
 ### 7.1 Smoke Test OpenLane 2
 Jalankan uji bawaan OpenLane 2 untuk memastikan integrasi Docker berjalan lancar:
 ```bash
-python3 -m openlane --dockerized --smoke-test
+python -m openlane --dockerized --smoke-test
 ```
 *(Harus menyelesaikan 78 tahapan dan diakhiri dengan `Smoke test passed.`)*
 

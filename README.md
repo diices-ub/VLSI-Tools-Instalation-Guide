@@ -1,14 +1,17 @@
+---
+
 # 🛠️ Open-Source ASIC Design Flow Installation Guide (SkyWater 130nm & OpenLane 2)
 
 <div align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-orange.svg)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04%20%7C%2026.04-orange.svg)
+![Python](https://img.shields.io/badge/Python-3.12%20(Conda)-yellow.svg)
 ![OpenLane](https://img.shields.io/badge/OpenLane-2.x-blue.svg)
 ![Sky130](https://img.shields.io/badge/PDK-SkyWater%20130nm-brightgreen.svg)
 ![Docker](https://img.shields.io/badge/Docker-Engine%2024%2B-blue.svg)
 
-Panduan instalasi lengkap, terstruktur, dan teruji untuk membangun lingkungan **IC Design Analog & Digital** open-source berbasis **OpenLane 2** dan **SkyWater 130nm PDK** di Ubuntu Linux.
+Panduan instalasi lengkap, terstruktur, dan teruji untuk membangun lingkungan **IC Design Analog & Digital** open-source berbasis **OpenLane 2**, **Conda (Python 3.12)**, dan **SkyWater 130nm PDK** di Ubuntu Linux / WSL.
 
 </div>
 
@@ -19,7 +22,7 @@ Panduan instalasi lengkap, terstruktur, dan teruji untuk membangun lingkungan **
 2. [Arsitektur Lingkungan Desain](#2-arsitektur-lingkungan-desain)
 3. [Langkah 1: System Dependencies & Build Tools](#3-langkah-1-system-dependencies--build-tools)
 4. [Langkah 2: Docker Engine & Non-Root Setup](#4-langkah-2-docker-engine--non-root-setup)
-5. [Langkah 3: OpenLane 2 & SkyWater 130nm PDK Setup](#5-langkah-3-openlane-2--skywater-130nm-pdk-setup)
+5. [Langkah 3: Miniconda, OpenLane 2 & SkyWater 130nm PDK Setup](#5-langkah-3-miniconda-openlane-2--skywater-130nm-pdk-setup)
 6. [Langkah 4: Kompilasi Host EDA Tools (Xschem, Magic, Ngspice, Netgen, Irsim, KLayout)](#6-langkah-4-kompilasi-host-eda-tools)
 7. [Langkah 5: Konfigurasi Environment Variables & Symlinks](#7-langkah-5-konfigurasi-environment-variables--symlinks)
 8. [Langkah 6: Verifikasi & Uji Desain Contoh](#8-langkah-6-verifikasi--uji-desain-contoh)
@@ -31,11 +34,11 @@ Panduan instalasi lengkap, terstruktur, dan teruji untuk membangun lingkungan **
 
 | Requirement | Spesifikasi Minimum | Rekomendasi |
 |------------|---------------------|-------------|
-| **OS** | Ubuntu 20.04 / 22.04 / 24.04 LTS (x86_64) | Ubuntu 22.04 LTS |
+| **OS** | Ubuntu 20.04 / 22.04 / 24.04 / 26.04 (x86_64) | Ubuntu 22.04 / 24.04 LTS atau WSL2 |
 | **Processor** | Quad-Core CPU @ 2.0 GHz+ | Multi-core (8+ Cores) |
 | **RAM** | 8 GiB | 16 GiB atau lebih |
 | **Disk Space** | ≥ 25 GB free space (SSD) | ≥ 40 GB free space |
-| **Internet** | Koneksi stabil | Diperlukan saat mengunduh Docker image & PDK |
+| **Internet** | Koneksi stabil | Diperlukan saat mengunduh Docker image, Conda package, & PDK |
 
 ---
 
@@ -44,7 +47,7 @@ Panduan instalasi lengkap, terstruktur, dan teruji untuk membangun lingkungan **
 Tools dibagi menjadi 2 ekosistem yang terintegrasi menggunakan **PDK yang sama**:
 
 ```text
- 💻 Ubuntu Host OS (Aplikasi GUI Interaktif)       🐳 Docker Container (OpenLane 2)
+ 💻 Ubuntu Host OS (Aplikasi GUI Interaktif)       🐳 Docker Container (OpenLane 2 via Conda)
 ┌──────────────────────────────────────────┐     ┌──────────────────────────────────┐
 │ • Xschem  : Editor Skematik Analog       │     │ • Yosys      : Logika Sintesis   │
 │ • Magic   : Editor Layout & DRC          │     │ • OpenROAD   : PnR Otomatis      │
@@ -61,15 +64,14 @@ Tools dibagi menjadi 2 ekosistem yang terintegrasi menggunakan **PDK yang sama**
 
 # 3. Langkah 1: System Dependencies & Build Tools
 
-Jalankan perintah berikut untuk memperbarui sistem dan memasang seluruh pustaka kompilasi sekaligus:
+Jalankan perintah berikut untuk memperbarui sistem dan memasang pustaka kompilasi dasar untuk C/C++, GUI X11, dan driver EDA:
 
 ```bash
 sudo apt-get update && sudo apt-get upgrade -y
 
-# Dependencies kompilasi C/C++, Tcl/Tk, X11, Python, dan EDA
+# Dependencies kompilasi C/C++, Tcl/Tk, X11, dan EDA Host Tools
 sudo apt-get install -y \
     build-essential gcc g++ make perl git curl wget \
-    python3 python3-pip python3-venv python3-tk python3-dev \
     m4 tcsh csh \
     libx11-dev libx11-xcb-dev libxpm-dev libxaw7-dev \
     tcl-dev tcllib tk-dev \
@@ -79,7 +81,7 @@ sudo apt-get install -y \
     libffi-dev graphviz xdot pkg-config \
     adms autoconf automake libtool \
     libgtk-3-dev libssl-dev zlib1g-dev \
-    libboost-system-dev libboost-python-dev libboost-filesystem-dev \
+    libboost-system-dev libboost-filesystem-dev \
     xterm graphicsmagick ghostscript vim
 ```
 
@@ -133,26 +135,55 @@ Verifikasi Docker non-root:
 ```bash
 docker run --rm hello-world
 ```
-*(Harus menampilkan: `Hello from Docker!` tanpa error).*
+*(Harus menampilkan: `Hello from Docker!` tanpa pesan error permission).*
 
 ---
 
-# 5. Langkah 3: OpenLane 2 & SkyWater 130nm PDK Setup
+# 5. Langkah 3: Miniconda, OpenLane 2 & SkyWater 130nm PDK Setup
 
-### 5.1 Buat Python Virtual Environment untuk OpenLane 2
+> 💡 **Mengapa Miniconda + Python 3.12?**  
+> Pada versi Ubuntu terbaru (seperti Ubuntu 24.10 / 26.04), Python sistem adalah Python 3.14 yang belum memiliki file kompilasi siap pakai (*wheels*) untuk paket seperti `klayout` dan `libparse`. Dengan Miniconda, kita membuat lingkungan terisolasi dengan **Python 3.12** yang 100% stabil untuk OpenLane 2.
+
+### 5.1 Unduh & Pasang Miniconda *(Lewati jika sudah terpasang)*
 ```bash
-# Buat direktori venv terisolasi
-python3 -m venv ~/.venv/openlane
+mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
 
-# Aktifkan venv dan install openlane + volare
-source ~/.venv/openlane/bin/activate
+# Pasang secara silent (batch mode)
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+rm -f ~/miniconda3/miniconda.sh
+
+# Inisialisasi ke shell bash dan muat ulang
+~/miniconda3/bin/conda init bash
+source ~/.bashrc
+```
+
+### 5.2 Buat Environment `openlane` dengan Python 3.12
+> **PENTING:** Gunakan opsi `-c conda-forge` agar tidak terkena galat *CondaToSNonInteractiveError (Terms of Service)*.
+
+```bash
+conda create -n openlane -c conda-forge python=3.12 pip -y
+```
+
+### 5.3 Pasang OpenLane 2 & Volare
+```bash
+# Aktifkan environment conda
+conda activate openlane
+
+# Upgrade pip dan pasang paket OpenLane 2 serta pengelola PDK Volare
 pip install --upgrade pip
 pip install openlane volare
 ```
 
-### 5.2 Pasang dan Aktifkan PDK Sky130 via Volare (Otomatis & Anti-Gagal)
-Jalankan baris berikut untuk langsung mengunduh dan membuat *symlink* versi stabil terbaru:
+Verifikasi versi terpasang:
 ```bash
+openlane --version
+volare --version
+```
+
+### 5.4 Pasang & Aktifkan PDK Sky130 via Volare (Otomatis & Anti-Gagal)
+```bash
+# Pastikan berada di environment conda openlane
 export PDK_ROOT=$HOME/.volare
 mkdir -p $PDK_ROOT
 
@@ -165,11 +196,11 @@ Verifikasi symlink PDK di host:
 ```bash
 ls -l ~/.volare/sky130A
 ```
-*(Pasti langsung mengarah ke direktori PDK yang valid).*
+*(Pasti langsung mengarah ke cache commit PDK Sky130A yang valid).*
 
-### 5.3 Jalankan OpenLane 2 Smoke Test
+### 5.5 Jalankan OpenLane 2 Smoke Test
 ```bash
-python3 -m openlane --dockerized --smoke-test
+openlane --dockerized --smoke-test
 ```
 > ⏳ *Catatan:* Perintah ini akan mengunduh Docker image resmi OpenLane 2 (~1.5 GB) dan menjalankan uji end-to-end (78 tahap). Tunggu hingga keluar pesan: **`Smoke test passed.`**
 
@@ -177,7 +208,7 @@ python3 -m openlane --dockerized --smoke-test
 
 # 6. Langkah 4: Kompilasi Host EDA Tools
 
-Tools ini berjalan langsung di desktop Ubuntu untuk kebutuhan desain analog, simulasi, dan tata letak manual.
+Tools ini dikompilasi secara *native* di host Linux untuk kebutuhan desain skematik analog, simulasi SPICE, dan tata letak manual (*custom layout*).
 
 ### 6.1 Persiapan Folder Kerja
 ```bash
@@ -309,17 +340,13 @@ Tambahkan baris berikut di bagian paling bawah:
 # Open-Source ASIC Design Flow Environment (SkyWater 130nm)
 # =========================================================
 
-# Path PDK Root
+# Path PDK Root (Volare)
 export PDK_ROOT=$HOME/.volare
-
-# Tambahkan binary virtual environment OpenLane ke PATH
-if [ -d "$HOME/.venv/openlane/bin" ]; then
-    export PATH="$HOME/.venv/openlane/bin:$PATH"
-fi
 
 # Fungsi penggantian varian PDK (Sky130A vs Sky130B)
 set_sky130a() {
     export PDK=sky130A
+    export PDKPATH=$PDK_ROOT/$PDK
     if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
         ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
     fi
@@ -330,6 +357,7 @@ set_sky130a() {
 
 set_sky130b() {
     export PDK=sky130B
+    export PDKPATH=$PDK_ROOT/$PDK
     if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
         ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
     fi
@@ -338,16 +366,18 @@ set_sky130b() {
     fi
 }
 
-# Aktifkan default sky130A
+# Aktifkan default sky130A saat terminal dibuka
 set_sky130a
 
-# Aliases untuk Xschem, Magic, dan OpenLane 2
+# Aliases untuk Xschem dan Magic
 alias magic='magic -rcfile $PDK_ROOT/$PDK/libs.tech/magic/$PDK.magicrc'
 alias xschem='xschem --rcfile $PDK_ROOT/$PDK/libs.tech/xschem/xschemrc'
-alias openlane='python3 -m openlane --dockerized'
+
+# Alias OpenLane 2 via Conda (dapat dijalankan langsung dari path mana pun)
+alias openlane='conda run --no-capture-output -n openlane openlane --dockerized'
 ```
 
-Simpan file (`Ctrl + O`, `Enter`, lalu `Ctrl + X`), lalu muat ulang:
+Simpan file (`Ctrl + O`, `Enter`, lalu `Ctrl + X`), kemudian muat ulang shell:
 ```bash
 source ~/.bashrc
 ```
@@ -358,10 +388,10 @@ source ~/.bashrc
 
 ### 8.1 Verifikasi Cepat Peluncuran Tools
 Jalankan satu per satu di terminal untuk memastikan tidak ada error konfigurasi:
-1. `xschem` ➡️ Harus membuka GUI Xschem dengan pustaka Sky130.
+1. `xschem` ➡️ Harus membuka GUI Xschem dengan pustaka Sky130 terdeteksi.
 2. `magic` ➡️ Konsol harus mencetak: `Using technology "sky130A"...`.
 3. `ngspice` ➡️ Harus membuka prompt `ngspice 1 ->` (ketik `quit` untuk keluar).
-4. `openlane --version` ➡️ Menampilkan versi OpenLane 2.
+4. `openlane --version` ➡️ Menampilkan versi OpenLane 2 melalui Conda wrapper.
 
 ---
 
@@ -405,12 +435,13 @@ cd ~/VLSI_Inverter_Design/Analog
 ---
 
 #### B. Alur Digital: Sintesis Otomatis RTL-to-GDSII dengan OpenLane 2
+Jalankan alur OpenLane 2 secara langsung menggunakan alias conda yang sudah dikonfigurasi:
 ```bash
-# Jalankan flow OpenLane 2 langsung ke folder desain digital
-openlane --dockerized ~/VLSI_Inverter_Design/Digital/inverter
+openlane ~/VLSI_Inverter_Design/Digital/inverter
 ```
+*(Atau jika berada di dalam `conda activate openlane`, jalankan: `openlane --dockerized ~/VLSI_Inverter_Design/Digital/inverter`).*
 
-Setelah alur selesai (**`Flow complete`**), buka hasil GDSII layout menggunakan KLayout:
+Setelah proses selesai dengan status **`Flow complete`**, buka hasil layout GDSII menggunakan KLayout:
 ```bash
 cd ~/VLSI_Inverter_Design/Digital/inverter/runs/
 klayout $(find . -name "*.gds" | tail -n 1)
@@ -422,16 +453,18 @@ klayout $(find . -name "*.gds" | tail -n 1)
 
 | Masalah | Penyebab | Solusi |
 |---------|----------|--------|
-| `Got permission denied while trying to connect to Docker daemon` | User belum aktif di grup docker | Jalankan `sudo usermod -aG docker $USER && newgrp docker` atau restart PC (`sudo reboot`). |
-| `cannot find /home/.../.volare/sky130A/libs.tech/xschem/xschemrc` | Symlink PDK belum dibuat | Jalankan `volare enable --pdk sky130 $(volare ls-remote --pdk sky130 \| grep -oE '[a-f0-9]{40}' \| head -n 1)`. |
-| `Command 'openlane' not found` | Virtualenv belum masuk PATH | Jalankan `source ~/.venv/openlane/bin/activate` atau pastikan blok `.bashrc` di Bab 7 sudah di-source. |
+| `Got permission denied while trying to connect to Docker daemon` | User belum aktif di grup docker | Jalankan `sudo usermod -aG docker $USER && newgrp docker` atau reboot sistem (`sudo reboot`). |
+| `CondaToSNonInteractiveError` saat `conda create` | Kanal default Anaconda mewajibkan persetujuan ToS interaktif | Pastikan selalu menambahkan argumen `-c conda-forge`: <br>`conda create -n openlane -c conda-forge python=3.12 pip -y` |
+| `Failed building wheel for klayout libparse` | Menjalankan pip install pada Python 3.14 (sistem) bukan Python 3.12 (Conda) | Pastikan conda environment aktif (`conda activate openlane`) dan `which python3` mengarah ke folder `miniconda3/envs/openlane/bin/python3`. |
+| `cannot find /home/.../.volare/sky130A/libs.tech/xschem/xschemrc` | Symlink PDK belum dibuat | Jalankan: <br>`conda activate openlane`<br>`volare enable --pdk sky130 $(volare ls-remote --pdk sky130 \| grep -oE '[a-f0-9]{40}' \| head -n 1)` |
+| `Command 'openlane' not found` | Belum mengaktifkan conda atau alias belum di-load | Jalankan `source ~/.bashrc` atau aktifkan langsung dengan `conda activate openlane`. |
 | Subcell layout di Magic terlihat kotak hitam | Hierarki tersembunyi secara default | Sorot seluruh area layout dengan mouse, lalu tekan tombol **`x`** di keyboard. |
 
 ---
 
 # 🎉 Selesai!
 
-Lingkungan **OpenLane 2 & SkyWater 130nm ASIC Design Flow** Anda kini 100% siap digunakan untuk:
+Lingkungan **OpenLane 2 & SkyWater 130nm ASIC Design Flow** berbasis **Conda (Python 3.12)** kini 100% siap digunakan untuk:
 - ✅ Desain Skematik & Analisis Rangkaian dengan **Xschem**
 - ✅ Simulasi Sirkuit Analog & Mixed-Signal dengan **Ngspice**
 - ✅ Desain Layout Kustom & DRC dengan **Magic**

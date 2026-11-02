@@ -1,32 +1,31 @@
-# 🚀 Migration Guide: Upgrade from OpenLane 1 to OpenLane 2 (SkyWater 130nm)
+---
+
+# 🚀 Migration Guide: Upgrade from OpenLane 1 to OpenLane 2 (SkyWater 130nm) via Conda
 
 <div align="center">
 
 ![Migration](https://img.shields.io/badge/Migration-OpenLane%201%20%E2%86%92%20OpenLane%202-blue.svg)
 ![PDK](https://img.shields.io/badge/PDK-SkyWater%20130nm%20(Volare)-brightgreen.svg)
-![Status](https://img.shields.io/badge/Host%20Tools-Preserved%20%E2%9C%85-success.svg)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-orange.svg)
+![Python](https://img.shields.io/badge/Python-3.12%20(Conda)-yellow.svg)
+![Host Tools](https://img.shields.io/badge/Host%20Tools-Preserved%20%E2%9C%85-success.svg)
+![OS](https://img.shields.io/badge/Ubuntu%20%2F%20WSL-20.04%20%7C%2022.04%20%7C%2024.04%20%7C%2026.04-orange.svg)
 
-Panduan praktis untuk membersihkan instalasi **OpenLane 1** lama dan melakukan upgrade ke **OpenLane 2** modern berbasis **Volare**, dengan tetap mempertahankan seluruh tools host yang sudah terpasang (**Xschem, Magic, Ngspice, Netgen, Irsim, KLayout**).
+Panduan praktis untuk membersihkan instalasi **OpenLane 1** lama dan melakukan upgrade ke **OpenLane 2** modern berbasis **Volare & Conda (Python 3.12)**, dengan tetap mempertahankan seluruh tools host yang sudah terpasang (**Xschem, Magic, Ngspice, Netgen, Irsim, KLayout**).
 
 </div>
 
 ---
 
-# 📋 Kondisi Awal (Prasyarat)
-
-Panduan ini diasumsikan untuk sistem yang telah menyelesaikan panduan v1.0 sebelumnya:
-- [x] Docker Engine sudah terpasang dan dapat dijalankan tanpa `sudo`.
-- [x] Host EDA tools (**Xschem, Magic, Ngspice, Netgen, Irsim, KLayout**) sudah terkompilasi di `/usr/local/bin/`.
-- [x] Terdapat instalasi OpenLane 1 lama di `~/OpenLane` dan PDK lama di `~/.ciel`.
+## 📋 Mengapa Menggunakan Conda (Python 3.12)?
+Di distro Linux terbaru (seperti Ubuntu 24.10 / 26.04), Python sistem bawaan adalah **Python 3.14** yang belum memiliki *pre-built wheel* untuk library kompilasi seperti `klayout` dan `libparse`. Menggunakan Conda memungkinkan kita memasang **Python 3.12 yang stabil dan terisolasi** tanpa merusak Python bawaan sistem operasi.
 
 ---
 
-# 📚 Alur Upgrade & Migrasi
+## 📚 Alur Upgrade & Migrasi
 
 1. [Langkah 1: Backup Desain Kustom (Jika Ada)](#1-langkah-1-backup-desain-kustom)
-2. [Langkah 2: Bersihkan & Hapus OpenLane 1 (Reclaim Disk Space)](#2-langkah-2-bersihkan--hapus-openlane-1)
-3. [Langkah 3: Pasang OpenLane 2 & Volare via Python Virtual Environment](#3-langkah-3-pasang-openlane-2--volare)
+2. [Langkah 2: Bersihkan OpenLane 1, PDK Lama, & Residu `.venv`](#2-langkah-2-bersihkan-openlane-1-pdk-lama--residu-venv)
+3. [Langkah 3: Instalasi Miniconda & Pembuatan Environment Python 3.12](#3-langkah-3-instalasi-miniconda--pembuatan-environment-python-312)
 4. [Langkah 4: Unduh & Aktifkan PDK Sky130 via Volare](#4-langkah-4-unduh--aktifkan-pdk-sky130-via-volare)
 5. [Langkah 5: Perbarui Konfigurasi `.bashrc`](#5-langkah-5-perbarui-konfigurasi-bashrc)
 6. [Langkah 6: Perbarui Symlink Integrasi Tools (Netgen, Irsim, KLayout)](#6-langkah-6-perbarui-symlink-integrasi-tools)
@@ -34,222 +33,222 @@ Panduan ini diasumsikan untuk sistem yang telah menyelesaikan panduan v1.0 sebel
 
 ---
 
-# 1. Langkah 1: Backup Desain Kustom
+### 1. Langkah 1: Backup Desain Kustom
 
-Sebelum menghapus folder OpenLane 1, pastikan desain yang pernah Anda buat di dalam folder `~/OpenLane/designs/` diselamatkan terlebih dahulu:
+Sebelum menghapus OpenLane 1, selamatkan folder desain Anda terlebih dahulu:
 
 ```bash
-# Buat folder backup jika ada desain penting
 mkdir -p ~/backup_designs
 cp -r ~/OpenLane/designs/* ~/backup_designs/ 2>/dev/null || true
 ```
 
 ---
 
-# 2. Langkah 2: Bersihkan & Hapus OpenLane 1
+### 2. Langkah 2: Bersihkan OpenLane 1, PDK Lama, & Residu `.venv`
 
-OpenLane 1 dan PDK lamanya (`.ciel`) memakan ruang penyimpanan yang sangat besar (bisa mencapai 20–30 GB). Mari kita bersihkan:
+Hapus instansi OpenLane 1, PDK lama (`.ciel`), serta folder virtual environment lama (`.venv`) agar tidak membajak path Python:
 
-### 2.1 Hapus Folder OpenLane 1 & PDK Lama
 ```bash
-# Hapus direktori repositori OpenLane 1
+# 1. Hapus direktori OpenLane 1 dan PDK lama
 rm -rf ~/OpenLane
-
-# Hapus PDK lama (.ciel) agar tidak tumpang tindih dengan Volare
 rm -rf ~/.ciel
-```
 
-### 2.2 Hapus Docker Images OpenLane 1 Lama
-Cek dan hapus container serta Docker image OpenLane 1 lama untuk menghemat kapasitas disk:
-```bash
-# Hapus image docker OpenLane v1 lama
+# 2. Hapus sisa venv lama (penyebab konflik path 'no module named openlane')
+rm -rf ~/.venv/openlane
+
+# 3. Hapus image Docker OpenLane 1 lama untuk menghemat kapasitas disk
 docker images | grep -E "efabless/openlane|openroad" | awk '{print $3}' | xargs -r docker rmi -f
 
-# Bersihkan sisa build cache docker yang tidak terpakai
+# 4. Bersihkan sisa container & cache Docker yang tidak terpakai
 docker system prune -f
 ```
 
 ---
 
-# 3. Langkah 3: Pasang OpenLane 2 & Volare
+### 3. Langkah 3: Instalasi Miniconda & Pembuatan Environment Python 3.12
 
-OpenLane 2 tidak lagi menggunakan `git clone` repositori besar, melainkan berbasis Python package dari PyPI.
-
-### 3.1 Install Dependensi Python (Jika Belum Ada)
+#### 3.1 Unduh & Pasang Miniconda *(Lewati langkah ini jika Miniconda sudah terpasang)*
 ```bash
-sudo apt-get update
-sudo apt-get install -y python3-venv python3-pip python3-tk
+# Unduh installer resmi Miniconda untuk Linux 64-bit
+mkdir -p ~/miniconda3
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+
+# Jalankan instalasi otomatis
+bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+
+# Hapus file installer
+rm -f ~/miniconda3/miniconda.sh
+
+# Inisialisasi ke shell bash
+~/miniconda3/bin/conda init bash
+source ~/.bashrc
 ```
 
-### 3.2 Buat Virtual Environment & Install OpenLane 2
-```bash
-# Buat virtual environment khusus
-python3 -m venv ~/.venv/openlane
+#### 3.2 Buat Environment `openlane` dengan Python 3.12
+> **PENTING:** Gunakan channel `-c conda-forge` agar tidak terkena error *CondaToSNonInteractiveError (Terms of Service)*.
 
-# Aktifkan venv & install openlane + volare
-source ~/.venv/openlane/bin/activate
+```bash
+conda create -n openlane -c conda-forge python=3.12 pip -y
+```
+
+#### 3.3 Aktifkan Environment & Install OpenLane 2 + Volare
+```bash
+# Aktifkan environment
+conda activate openlane
+
+# Pastikan pip mutakhir
 pip install --upgrade pip
+
+# Install OpenLane 2 dan manajer PDK Volare
 pip install openlane volare
+```
+
+Verifikasi instalasi berhasil:
+```bash
+which python3
+# Output HARUS mengarah ke: /home/<user>/miniconda3/envs/openlane/bin/python3
+
+openlane --version
+volare --version
 ```
 
 ---
 
-# 4. Langkah 4: Unduh & Aktifkan PDK Sky130 via Volare
+### 4. Langkah 4: Unduh & Aktifkan PDK Sky130 via Volare
 
-Volare adalah manajer PDK resmi modern yang digunakan oleh OpenLane 2:
+Volare adalah manajer PDK modern yang mengelola versi commit PDK secara presisi:
 
 ```bash
+# Pastikan environment conda masih aktif
+conda activate openlane
+
+# Tetapkan lokasi root PDK baru
 export PDK_ROOT=$HOME/.volare
 mkdir -p $PDK_ROOT
 
-# Ambil versi commit terbaru dan langsung aktifkan symlink-nya
+# Cari versi PDK SkyWater 130nm terbaru dan langsung aktifkan
 LATEST_PDK=$(volare ls-remote --pdk sky130 | grep -oE '[a-f0-9]{40}' | head -n 1)
 volare enable --pdk sky130 $LATEST_PDK
 ```
 
-Verifikasi symlink PDK yang baru diaktifkan:
+Periksa hasil unduhan dan symlink aktif:
 ```bash
 ls -l ~/.volare/sky130A
 ```
-*(Pastikan direktori `sky130A` menunjuk ke cache commit yang aktif).*
+*(Pastikan `sky130A` menunjuk ke folder hash commit PDK yang baru diunduh).*
 
 ---
 
-# 5. Langkah 5: Perbarui Konfigurasi `.bashrc`
+### 5. Langkah 5: Perbarui Konfigurasi `.bashrc`
 
-Buka file konfigurasi shell:
+Buka konfigurasi shell Anda:
 ```bash
 nano ~/.bashrc
 ```
 
-Cari bagian konfigurasi PDK lama (`export PDK_ROOT=$HOME/.ciel`), lalu **ganti** seluruh blok konfigurasi PDK & OpenLane lama menjadi seperti ini:
+1. **HAPUS** baris lama yang mengarah ke `.venv` (jika ada):
+   *(Hapus blok `if [ -d "$HOME/.venv/openlane/bin" ]; then ... fi`)*
+2. Tambahkan atau ganti bagian konfigurasi PDK & OpenLane di bagian paling bawah dengan blok berikut:
 
 ```bash
 # =========================================================
-# OpenLane 2 & SkyWater 130nm PDK Environment
+# OpenLane 2 & SkyWater 130nm PDK Environment (Conda)
 # =========================================================
 
 # Lokasi PDK Root Baru (Volare)
 export PDK_ROOT=$HOME/.volare
 
-# Tambahkan CLI OpenLane 2 & Volare ke PATH global
-if [ -d "$HOME/.venv/openlane/bin" ]; then
-    export PATH="$HOME/.venv/openlane/bin:$PATH"
-fi
-
 # Fungsi Pergantian Varian PDK
 set_sky130a() {
     export PDK=sky130A
-    if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
-        ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
-    fi
-    if [[ -t 1 ]]; then
-        echo "Active PDK is now: $PDK"
-    fi
+    export PDKPATH=$PDK_ROOT/$PDK
+    echo "PDK is now set to: $PDK"
 }
 
 set_sky130b() {
     export PDK=sky130B
-    if [ -f "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ]; then
-        ln -sf "$PDK_ROOT/$PDK/libs.tech/ngspice/spinit" ~/.spiceinit
-    fi
-    if [[ -t 1 ]]; then
-        echo "Active PDK is now: $PDK"
-    fi
+    export PDKPATH=$PDK_ROOT/$PDK
+    echo "PDK is now set to: $PDK"
 }
 
-# Default PDK
+# Default ke sky130A saat terminal baru dibuka
 set_sky130a
 
-# Aliases Host Tools & OpenLane 2
-alias magic='magic -rcfile $PDK_ROOT/$PDK/libs.tech/magic/$PDK.magicrc'
-alias xschem='xschem --rcfile $PDK_ROOT/$PDK/libs.tech/xschem/xschemrc'
-alias openlane='python3 -m openlane --dockerized'
+# Shortcut Praktis OpenLane 2 Dockerized
+alias openlane-run='conda run --no-capture-output -n openlane openlane --dockerized'
 ```
 
-Simpan file (`Ctrl + O`, `Enter`, lalu `Ctrl + X`), lalu reload:
+Simpan file (`Ctrl + O`, lalu `Enter`, kemudian `Ctrl + X`), lalu muat ulang shell:
 ```bash
 source ~/.bashrc
 ```
 
 ---
 
-# 6. Langkah 6: Perbarui Symlink Integrasi Tools
+### 6. Langkah 6: Perbarui Symlink Integrasi Tools
 
-Karena lokasi PDK telah berpindah dari `~/.ciel` ke `~/.volare`, kita hanya perlu memperbarui symlink untuk Netgen, Irsim, dan KLayout:
+Tools host EDA (**Magic, Netgen, Irsim, KLayout, Xschem**) membutuhkan symlink konfigurasi PDK Sky130. Karena PDK lama (`.ciel`) sudah dihapus, hubungkan ke folder PDK Volare baru:
 
-### 6.1 Perbarui Netgen LVS Setup
 ```bash
-cd ~/design/netgen
-ln -sf $PDK_ROOT/sky130A/libs.tech/netgen/setup.tcl sky130A_setup.tcl
-ln -sf $PDK_ROOT/sky130B/libs.tech/netgen/setup.tcl sky130B_setup.tcl
-```
+# Pastikan PDK default aktif
+set_sky130a
 
-### 6.2 Perbarui Irsim Libraries
-```bash
-cd ~/design/irsim
-ln -sf $PDK_ROOT/sky130A/libs.tech/irsim irsim_sky130A
-ln -sf $PDK_ROOT/sky130B/libs.tech/irsim irsim_sky130B
-```
+# 1. Setup Konfigurasi Netgen
+sudo mkdir -p /usr/local/share/pdk
+sudo ln -sfn $PDK_ROOT /usr/local/share/pdk/sky130A
 
-### 6.3 Perbarui KLayout Tech
-```bash
+# 2. Setup Symlink IRSIM
+sudo mkdir -p /usr/local/share/irsim
+sudo ln -sfn $PDKPATH/libs.tech/irsim/sky130A.prm /usr/local/share/irsim/sky130A.prm
+
+# 3. Setup Konfigurasi KLayout Tech
 mkdir -p ~/.klayout/tech
-cd ~/.klayout/tech
-ln -sf $PDK_ROOT/sky130A/libs.tech/klayout sky130A
+ln -sfn $PDKPATH/libs.tech/klayout/tech/sky130A.lyt ~/.klayout/tech/sky130A.lyt
+ln -sfn $PDKPATH/libs.tech/klayout/tech/sky130A.lyp ~/.klayout/tech/sky130A.lyp
+
+# 4. Setup Symlink Magic System Tech
+sudo ln -sfn $PDKPATH/libs.tech/magic/sky130A.magicrc /usr/local/lib/magic/sys/sky130A.magicrc 2>/dev/null || true
 ```
 
 ---
 
-# 7. Langkah 7: Verifikasi & Uji Alur OpenLane 2
+### 7. Langkah 7: Verifikasi & Uji Alur OpenLane 2
 
-### 7.1 Smoke Test OpenLane 2
-Jalankan uji bawaan OpenLane 2 untuk memastikan integrasi Docker berjalan lancar:
+#### 7.1 Smoke Test OpenLane 2 (Uji Docker & Engine)
+Jalankan tes bawaan untuk memastikan OpenLane 2 dapat memanggil container Docker dengan lancar:
+
 ```bash
-python3 -m openlane --dockerized --smoke-test
+conda activate openlane
+openlane --dockerized --smoke-test
 ```
-*(Harus menyelesaikan 78 tahapan dan diakhiri dengan `Smoke test passed.`)*
+*(Proses ini akan mengunduh Docker image OpenLane 2 resmi jika belum ada di cache, lalu menjalankan sintesis miniatur `spm` hingga selesai).*
 
----
-
-### 7.2 Perbandingan Cara Menjalankan Desain Digital
-
-| OpenLane 1 (Cara Lama - Sudah Dihapus ❌) | OpenLane 2 (Cara Baru Modern ✅) |
-|---|---|
-| Harus copy folder ke `~/OpenLane/designs/` | **Bisa dijalankan langsung di folder mana saja!** |
-| `cd ~/OpenLane` | Cukup jalankan dari terminal mana pun: |
-| `make mount` | `openlane --dockerized /path/to/design` |
-| `./flow.tcl -design inverter` | |
-
-#### Uji Desain Digital Inverter:
-Jika Anda menggunakan repo contoh `VLSI_Inverter_Design`:
+#### 7.2 Uji Sintesis Desain Mandiri
+Untuk menjalankan desain kustom di OpenLane 2:
 ```bash
-# Tidak perlu lagi copy ke folder OpenLane, langsung eksekusi foldernya:
-openlane --dockerized ~/VLSI_Inverter_Design/Digital/inverter
-```
+# Masuk ke direktori desain yang ingin dijalankan
+cd ~/backup_designs/inverter   # (contoh)
 
-Setelah alur selesai, buka hasil GDSII layout di KLayout:
-```bash
-cd ~/VLSI_Inverter_Design/Digital/inverter/runs/
-klayout $(find . -name "*.gds" | tail -n 1)
-```
-
-#### Verifikasi Tools Analog Host:
-Pastikan tools analog Anda tidak terganggu dan tetap lancar:
-```bash
-# Uji Xschem
-xschem
-
-# Uji Magic
-magic
+# Jalankan flow lengkap
+openlane --dockerized config.json
 ```
 
 ---
 
-# 🎯 Selesai!
+### 💡 Tips Penting Sehari-Hari
 
-Proses migrasi telah selesai:
-- 🗑️ **OpenLane 1** dan cache lama berhasil dihapus total (menghemat ~25 GB disk).
-- ⚡ **OpenLane 2** terpasang rapi di virtual environment dan terintegrasi dengan Docker non-root.
-- 📦 **PDK SkyWater 130nm** kini dikelola rapi oleh **Volare** di `~/.volare`.
-- 🔌 Semua host tools (**Xschem, Ngspice, Magic, Netgen, Irsim, KLayout**) tetap berfungsi normal tanpa perlu install ulang! 🚀
+1. **Memulai Sesi Kerja OpenLane:**
+   Cukup aktifkan conda environment di terminal Anda:
+   ```bash
+   conda activate openlane
+   ```
+2. **Menjalankan Tanpa Masuk ke Conda:**
+   Gunakan alias yang sudah kita tambahkan di `.bashrc`:
+   ```bash
+   openlane-run <path/ke/config.json>
+   ```
+3. **Mengecek Versi PDK yang Aktif:**
+   ```bash
+   conda activate openlane
+   volare ls
+   ```
